@@ -23,10 +23,10 @@ from rest_framework_swagger.views import get_swagger_view
 
 schema_view = get_swagger_view(title='Domains API')
 
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('scim/v2/', include('django_scim.urls')),
     path('creds/', include('creds.urls')),
-    re_path('domains/doc', schema_view)
+    re_path('domains/doc', schema_view),
+    path('domains/v1/', include('domains.urls')),
 ]

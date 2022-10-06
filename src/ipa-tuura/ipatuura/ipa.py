@@ -391,7 +391,121 @@ class AD:
     Initialization of the LDAP AD writable interface
     """
     def __init__(self):
-        pass
+        self._conn = None
+        self._backend = None
+        self._context = "client"
+        self._ccache_dir = None
+        self._ccache_name = None
+
+        # replace by sssd.conf settings.
+        self._base_dn = 'dc=ad,dc=testrealm,dc=test'
+        # ldap versus ldaps
+        self._uri = 'ldaps://ad.testrealm.test'
+        # properly configure a truststore
+        self._tls_cacert = '/etc/openldap/certs/ad_cert.pem'
+
+        # read from keycloak
+        self._sasl_gssapi = ldap.sasl.sasl({}, 'GSSAPI')
+        self._group = 'cn=users,cn=accounts'
+        self._objectClass = None
+
+        self._read_sssd_config()
+        self._ldap_connect()
+
+    def _read_sssd_config(self):
+        try:
+            sssdconfig = SSSDConfig.SSSDConfig()
+            sssdconfig.import_config()
+        except Exception as e:
+            # SSSD configuration does not exist or cannot be parsed
+            print("Unable to parse SSSD configuration")
+            print("Please ensure the host is properly configured.")
+            raise e
+        # Read attributes from the domain section
+        self._read_ldap_domains(sssdconfig)
+
+    def _read_ldap_domains(self, sssdconfig):
+        """
+        Configure the domains with extra attribute mappings
+
+        Loop on the configured domains and configure the domain with extra
+        attribute mappings if the id_provider is "ldap".
+        """
+        # Configure each ipa/ad/ldap domain
+        domains = sssdconfig.list_active_domains()
+        for name in domains:
+            domain = sssdconfig.get_domain(name)
+            provider = domain.get_option('id_provider')
+            if provider in {"ad"}:
+                self._read_ldap_domain(domain)
+
+    def _read_ldap_domain(self, domain):
+        """
+        Configure the domain with extra attribute mappings
+
+        Add the following ldap_user_extra_attrs mappings to the [domain/<name>]
+        section:
+        mail:mail, sn:sn, givenname:givenname
+        If the section already defines some mappings, they are kept.
+        """
+        try:
+            self._uri = domain.get_option('ldap_uri')
+            self._base_dn = domain.get_option('ldap_search_base')
+            self._tls_cacert = domain.get_option('ldap_tls_cacert')
+        except Exception as e:
+            # SSSD configuration does not exist or cannot be parsed
+            print("Unable to parse SSSD configuration")
+            print("Please ensure the host is properly configured.")
+            raise e
+
+    def _ldap_connect(self):
+        """
+        Create a connection to LDAP and bind to it.
+        """
+        try:
+            # PYTHON-LDAP
+            self._conn = ldap.initialize(self._uri)
+            self._conn.protocol_version = 3
+            self._conn.set_option(ldap.OPT_REFERRALS, 0)
+            self._conn.simple_bind_s('Administrator@testrealm.test', 'Secret123')
+        except Exception as e:
+            logger.error(f'Unable to bind to LDAP server {e}')
+    
+    def encode(self, val):
+        """
+        Encode attribute value to LDAP representation (str/bytes)
+        """
+        # Booleans are both an instance of bool and int, therefore
+        # test for bool before int otherwise the int clause will be
+        # entered for a boolean value instead of the boolean clause.
+        if isinstance(val, bool):
+            if val:
+                return b'TRUE'
+            else:
+                return b'FALSE'
+        elif isinstance(val, (unicode, int, Decimal, DN, Principal)):
+            return str(val).encode('utf-8')
+        elif isinstance(val, DNSName):
+            return val.to_text().encode('ascii')
+        elif isinstance(val, bytes):
+            return val
+        elif isinstance(val, list):
+            return [self.encode(m) for m in val]
+        elif isinstance(val, tuple):
+            return tuple(self.encode(m) for m in val)
+        elif isinstance(val, dict):
+            # key in dict must be str not bytes
+            dct = dict((k, self.encode(v)) for k, v in val.items())
+            return dct
+        elif isinstance(val, datetime.datetime):
+            return val.strftime(LDAP_GENERALIZED_TIME_FORMAT).encode('utf-8')
+        elif isinstance(val, crypto_x509.Certificate):
+            return val.public_bytes(x509.Encoding.DER)
+        elif val is None:
+            return None
+        else:
+            raise TypeError("attempt to pass unsupported type to ldap, "
+                            "value=%s type=%s" % (val, type(val)))
 
     def add(self, scim_user):
         """
@@ -399,7 +513,28 @@ class AD:
 
         :param scim_user: user object conforming to the SCIM User Schema
         """
-        pass
+        attrs = {}
+        # TODO: objectclasses should be propagated from keycloak
+        attrs['objectclass'] = [b'inetOrgPerson',
+                                b'organizationalPerson',
+                                b'person',
+                                b'top']
+        attrs['cn'] = self.encode(scim_user.obj.username)
+        attrs['mail'] = self.encode(scim_user.obj.email)
+        attrs['givenname'] = self.encode(scim_user.obj.first_name)
+        attrs['sn'] = self.encode(scim_user.obj.last_name)
+        ldif = modlist.addModlist(attrs)
+
+        self._ldap_connect()
+        try:
+            self._conn.add_s("uid={uid},{group},{basedn}".format(
+                uid=scim_user.obj.username,
+                group=self._group,
+                basedn=self._base_dn), ldif)
+        except ldap.LDAPError as e:
+            desc = e.args[0]['desc'].strip()
+            info = e.args[0].get('info', '').strip()
+            logger.error(f'LDAP Error: {desc}: {info}')
 
     def modify(self, scim_user):
         """
@@ -407,7 +542,28 @@ class AD:
 
         :param scim_user: user object conforming to the SCIM User Schema
         """
-        pass
+        attrs = {}
+        # TODO: objectclasses should be propagated from keycloak
+        attrs['objectclass'] = [b'inetOrgPerson',
+                                b'organizationalPerson',
+                                b'person',
+                                b'top']
+        attrs['cn'] = self.encode(scim_user.obj.username)
+        attrs['mail'] = self.encode(scim_user.obj.email)
+        attrs['givenname'] = self.encode(scim_user.obj.first_name)
+        attrs['sn'] = self.encode(scim_user.obj.last_name)
+        ldif = modlist.addModlist(attrs)
+
+        self._ldap_connect()
+        try:
+            self._conn.modify_s("uid={uid},{group},{basedn}".format(
+                uid=scim_user.obj.username,
+                group=self._group,
+                basedn=self._base_dn), ldif)
+        except ldap.LDAPError as e:
+            desc = e.args[0]['desc'].strip()
+            info = e.args[0].get('info', '').strip()
+            logger.error(f'LDAP Error: {desc}: {info}')
 
     def delete(self, scim_user):
         """
@@ -415,8 +571,16 @@ class AD:
 
         :param scim_user: user object conforming to the SCIM User Schema
         """
-        pass
-
+        self._ldap_connect()
+        try:
+            self._conn.delete_s("uid={uid},{group},{basedn}".format(
+                uid=scim_user.obj.username,
+                group=self._group,
+                basedn=self._base_dn))
+        except ldap.LDAPError as e:
+            desc = e.args[0]['desc'].strip()
+            info = e.args[0].get('info', '').strip()
+            logger.error(f'LDAP Error: {desc}: {info}')
 
 class _IPA():
     _instance = None

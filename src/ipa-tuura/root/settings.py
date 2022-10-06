@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'creds',
     'rest_framework',
     'rest_framework_swagger',
+    'domains',
 ]
 
 MIDDLEWARE = [
@@ -128,11 +129,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-
 # ipa-tuura configuration
 
 # We assume that an admin keytab is available
-os.environ["KRB5_CLIENT_KTNAME"] = '/root/scim.keytab'
+#os.environ["KRB5_CLIENT_KTNAME"] = '/root/scim.keytab'
+os.environ["KRB5_CLIENT_KTNAME"] = '/var/lib/ipa/ipatuura/service.keytab'
 
 AUTH_USER_MODEL = 'ipatuura.User'
 
