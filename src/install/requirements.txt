@@ -8,3 +8,8 @@ django-extensions
 django-oauth-toolkit
 python-pam
 six
+# admin/domains endpoint
+djangorestframework
+markdown
+django-filter
+ipalib
