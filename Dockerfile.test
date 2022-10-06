@@ -31,4 +31,14 @@ RUN dnf -y update && dnf -y install \
 COPY . ipa-tuura
 WORKDIR /ipa-tuura
 RUN pip install -r src/install/requirements.txt
-RUN python3 src/ipa-tuura/manage.py test
+
+# Install Unit Test Dependencies
+RUN pip install factory_boy coverage==3.6
+
+# Run the unit tests for the integration domains app
+RUN python3 src/ipa-tuura/manage.py test domains
+
+RUN coverage run src/ipa-tuura/manage.py test domains -v 2
+
+RUN coverage run manage.py test domains -v 2 && coverage report && coverage html
+
