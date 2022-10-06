@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'creds',
     'rest_framework',
     'rest_framework_swagger',
+    'domains',
 ]
 
 MIDDLEWARE = [
