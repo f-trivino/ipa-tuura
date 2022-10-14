@@ -13,6 +13,7 @@ from ipatuura.ipa import IPA
 
 logger = logging.getLogger(__name__)
 
+
 class SCIMUser(SCIMUser):
     @property
     def meta(self):
@@ -92,7 +93,6 @@ class SCIMUser(SCIMUser):
 
             self.obj.email = email
 
-
     @property
     def emails(self):
         """
@@ -109,7 +109,6 @@ class SCIMUser(SCIMUser):
             return [{'value': self.obj.email, 'primary': True}]
         else:
             return []
-
 
     @property
     def is_new_user(self):
@@ -144,7 +143,6 @@ class SCIMUser(SCIMUser):
                 logger.info(f'User saved. User id {self.obj.id}')
         except Exception as e:
             raise e
-
 
     def delete(self):
         self.obj.is_active = False
