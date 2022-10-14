@@ -3,6 +3,7 @@ name: Unit tests
 
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -22,7 +23,7 @@ jobs:
           python3 -m pip install --upgrade pip
           pip instll -r src/install/requirements.txt
       - name: Lint with Flake8
-        run: |
+          run: |
           flake8 .
       - name: Run Tests
         run: |
