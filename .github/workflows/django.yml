@@ -19,7 +19,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-	  python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip
           pip instll -r src/install/requirements.txt
       - name: Lint with Flake8
           run: |
