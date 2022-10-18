@@ -139,10 +139,20 @@ SCIM_SERVICE_PROVIDER = {
     'USER_ADAPTER': 'ipatuura.adapters.SCIMUser',
     'GROUP_MODEL': 'ipatuura.models.Group',
     'GROUP_ADAPTER': 'ipatuura.adapters.SCIMGroup',
+    'SERVICE_PROVIDER_CONFIG_MODEL': 'django_scim.models.SCIMServiceProviderConfig',
     'USER_FILTER_PARSER': 'ipatuura.utils.SCIMUserFilterQuery',
     'GROUP_FILTER_PARSER': 'ipatuura.utils.SCIMGroupFilterQuery',
     # TODO: read from keycloak/sssd.conf
     # WRITABLE_IFACE values: ipa, ldap, ad
     'WRITABLE_IFACE': 'ipa',
     'WRITABLE_USER': 'admin',
+    'AUTHENTICATION_SCHEMES': [
+        {
+            'type': 'httpbasic',
+            'name': 'HTTP Basic',
+            'description': 'Basic auth using cookiejar',
+            'specUri': '',
+            'documentationUri': '',
+        },
+    ],
 }
