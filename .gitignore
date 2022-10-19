@@ -11,3 +11,6 @@ src/ipa-tuura/scimv2bridge/migrations/
 
 # In-tree build files
 *~
+
+# venv
+ipatuura-env
