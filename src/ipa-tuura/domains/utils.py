@@ -337,7 +337,7 @@ def config_default_sssd(domain):
     domain_section = "%s/%s" % ("domain", domainname)
     sssdconfig.add_section(domain_section)
     sssdconfig.set(
-        domain_section, "ldap_search_base", "dn=" + suffix[0] + ", dn=" + suffix[1]
+        domain_section, "ldap_search_base", "dc=" + suffix[0] + ", dc=" + suffix[1]
     )
     sssdconfig.set(domain_section, "debug_level", "9")
     sssdconfig.set(domain_section, "id_provider", id_provider)
