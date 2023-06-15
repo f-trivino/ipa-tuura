@@ -3,6 +3,7 @@
 #
 
 import logging
+import base64
 
 from django.db import models
 from django.utils.translation import gettext as _
@@ -53,6 +54,9 @@ class Domain(models.Model):
         default=DomainProviderType.IPA,
     )
 
+    # LDAP auth with TLS support, this field contains a base64 encoded CA cert
+    ldap_tls_cacert = models.CharField(max_length=255)
+
     # Optional comma-separated list of extra attributes to download
     # along with the user entry
     user_extra_attrs = models.CharField(max_length=255, blank=True)
@@ -62,10 +66,6 @@ class Domain(models.Model):
 
     # Optional full DN of LDAP tree where users are
     users_dn = models.CharField(max_length=255)
-
-    # LDAP auth with TLS support, the file path for now
-    # TODO: base64 decode CA cert from HTTP request
-    ldap_tls_cacert = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name

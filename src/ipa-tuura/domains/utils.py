@@ -8,6 +8,7 @@ import re
 import socket
 import subprocess
 import tempfile
+import base64
 
 import ipalib.errors
 import SSSDConfig
@@ -321,6 +322,13 @@ def config_default_sssd(domain):
     domainname = domain["name"]
     id_provider = domain["id_provider"]
     ldap_uri = domain["integration_domain_url"]
+
+    # Process ldap_tls_cacert, base64decode.
+    cert_location = "/var/www/html/ssl/cacert.pem"
+    certificate = base64.b64decode(domain['ldap_tls_cacert'])
+    with open(cert_location, 'w') as f:
+        f.write(certificate)
+
     try:
         ldap_user_extra_attrs = domain["user_extra_attrs"]
     except KeyError:
@@ -356,9 +364,6 @@ def config_default_sssd(domain):
     sssdconfig.add_section("pam")
     sssdconfig.set("pam", "timeout", "60")
     sssdconfig.add_section("ifp")
-
-    # TODO process ldap_tls_cacert, base64decode.
-    cert_location = "/etc/openldap/certs/cacert.pem"
     sssdconfig.set(domain_section, "ldap_tls_cacert", cert_location)
 
     with open(cfg, "w") as fd:

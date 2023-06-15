@@ -21,8 +21,8 @@ class DomainSerializer(ModelSerializer):
             "client_id",
             "client_secret",
             "id_provider",
+            "ldap_tls_cacert",
             "user_extra_attrs",
             "user_object_classes",
             "users_dn",
-            "ldap_tls_cacert",
         )
